@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#000000"/>
+<meta name="description" content="Patota Blumenau — gestão colaborativa de grupo de futebol amador com suporte de acessibilidade WCAG."/>
+<title>Patota Blumenau v5</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════
+   RESET & TOKENS
+══════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#D32F2F;--red-light:#FFEBEE;--red-dark:#B71C1C;
+  --black:#000;--white:#fff;
+  --gray100:#F5F5F5;--gray200:#EEEEEE;
+  /* WCAG 1.4.3: #BDBDBD falha contraste 2.1:1 → substituído por #767676 (4.54:1) */
+  --gray400:#767676;
+  --gray600:#595959;--gray700:#4A4A4A;
+  --green:#1B5E20;--green-bg:#E8F5E9;
+  --orange:#BF360C;--orange-bg:#FFF3E0;
+  --blue:#0D47A1;--blue-bg:#E3F2FD;
+  --purple:#6A1B9A;--purple-bg:#F3E5F5;
+  --font:'DM Sans',sans-serif;
+  --r-btn:50px;--r-card:16px;--r-input:12px;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  /* WCAG 2.4.7: anel de foco visível */
+  --focus-ring:0 0 0 3px #fff, 0 0 0 5px #D32F2F;
+}
+
+/* WCAG 2.4.7 — foco visível em todos os elementos interativos */
+:focus-visible{
+  outline:3px solid var(--red);
+  outline-offset:2px;
+  border-radius:4px;
+}
+input,select,textarea{font-size:16px!important}
+html,body{height:100%;font-family:var(--font);background:#111;overflow:hidden;-webkit-text-size-adjust:100%;}
+#app{width:100%;max-width:430px;height:100dvh;margin:0 auto;background:var(--white);display:flex;flex-direction:column;position:relative;overflow:hidden}
+.view{display:none;flex-direction:column;flex:1;overflow:hidden}
+.view.active{display:flex}
+
+/* STATUS BAR */
+.status-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px 6px;font-size:12px;font-weight:700;flex-shrink:0}
+.status-bar.dark{color:var(--white);background:var(--black)}
+.status-bar.light{color:var(--black);background:var(--white)}
+.status-icons{display:flex;gap:5px;align-items:center}
+
+/* SCROLL */
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+.scroll-area::-webkit-scrollbar{display:none}
+
+/* BOTTOM NAV */
+.bottom-nav{display:flex;background:var(--white);border-top:1px solid var(--gray200);padding:8px 0;padding-bottom:calc(8px + var(--safe-bottom));flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--gray600);cursor:pointer;padding:4px 0;transition:color .15s;-webkit-tap-highlight-color:transparent;border:none;background:none;font-family:var(--font)}
+.nav-item.active{color:var(--red)}
+
+/* BUTTONS */
+.btn-primary{background:var(--red);color:var(--white);border-radius:var(--r-btn);padding:16px;font-size:16px;font-weight:700;text-align:center;cursor:pointer;border:none;font-family:var(--font);width:100%;transition:opacity .15s,transform .1s;-webkit-tap-highlight-color:transparent}
+.btn-primary:active{opacity:.85;transform:scale(.98)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-outline{background:var(--white);color:var(--black);border:2px solid var(--black);border-radius:var(--r-btn);padding:14px;font-size:15px;font-weight:700;text-align:center;cursor:pointer;font-family:var(--font);width:100%;transition:opacity .15s;-webkit-tap-highlight-color:transparent}
+.btn-outline:active{opacity:.7}
+.btn-danger{background:none;color:var(--red);border:2px solid var(--red);border-radius:var(--r-btn);padding:14px;font-size:15px;font-weight:700;text-align:center;cursor:pointer;font-family:var(--font);width:100%;transition:background .15s,color .15s;-webkit-tap-highlight-color:transparent}
+.btn-danger:active{background:var(--red);color:#fff}
+
+/* INPUTS */
+.input-wrap{display:flex;flex-direction:column;gap:6px}
+.input-label{font-size:11px;font-weight:700;color:var(--gray700);letter-spacing:.5px;text-transform:uppercase}
+.input-real{border:1.5px solid var(--gray200);border-radius:var(--r-input);padding:13px 16px;font-family:var(--font);color:var(--black);background:var(--gray100);outline:none;width:100%;transition:border-color .15s,background .15s;-webkit-appearance:none;appearance:none}
+.input-real:focus{border-color:var(--red);background:var(--white)}
+.input-real.error{border-color:var(--red);background:var(--red-light)}
+.input-error{font-size:12px;color:var(--red);font-weight:500;display:none;margin-top:-2px}
+.input-error.show{display:block}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(88px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(16px);background:#323232;color:#fff;font-size:14px;font-weight:500;padding:12px 20px;border-radius:var(--r-btn);white-space:nowrap;z-index:9999;max-width:90%;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* MODAL SHEET */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal-sheet{background:var(--white);border-radius:24px 24px 0 0;padding:24px 20px calc(28px + var(--safe-bottom));width:100%;max-width:430px;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);max-height:90dvh;overflow-y:auto}
+.modal-overlay.show .modal-sheet{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(--gray200);border-radius:4px;margin:0 auto 18px}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:18px}
+.modal-actions{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+
+/* DIVIDER */
+.divider{display:flex;align-items:center;gap:10px}
+.divider-line{flex:1;height:1px;background:var(--gray200)}
+.divider-text{font-size:12px;color:var(--gray400);font-weight:500}
+
+/* ═══ LOGIN ═══ */
+#view-login{background:var(--white)}
+.login-hero{background:var(--black);padding:44px 32px 34px;display:flex;flex-direction:column;align-items:center;gap:12px;flex-shrink:0}
+.logo-mark{width:72px;height:72px;background:var(--red);border-radius:20px;display:flex;align-items:center;justify-content:center}
+.logo-text{color:var(--white);font-size:24px;font-weight:700}
+.logo-sub{color:var(--gray400);font-size:13px}
+.login-form{padding:22px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.btn-whatsapp{background:var(--white);color:var(--black);border:1.5px solid var(--gray200);border-radius:var(--r-btn);padding:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;width:100%;font-family:var(--font);transition:border-color .15s;-webkit-tap-highlight-color:transparent}
+.btn-whatsapp:active{border-color:var(--gray400)}
+.wa-icon{width:22px;height:22px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.link-text{text-align:center;font-size:14px;color:var(--gray600)}
+.link-text span{color:var(--red);font-weight:700;text-decoration:underline;cursor:pointer}
+.hint-box{background:var(--gray100);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--gray700);line-height:1.6}
+.hint-box strong{color:var(--red)}
+
+/* ═══ ONBOARDING ═══ */
+.onboard-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:32px 24px}
+.onboard-step{display:none;flex-direction:column;align-items:center;gap:12px;text-align:center;animation:fadeUp .3s ease}
+.onboard-step.active{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.onboard-icon{width:80px;height:80px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:36px}
+.onboard-title{font-size:20px;font-weight:700}
+.onboard-body{font-size:14px;color:var(--gray600);line-height:1.6}
+.onboard-dots{display:flex;gap:8px;margin-top:4px}
+.onboard-dot{width:8px;height:8px;border-radius:50%;background:var(--gray200);transition:background .2s}
+.onboard-dot.active{background:var(--red);width:22px;border-radius:4px}
+
+/* ═══ MURAL ═══ */
+.hero-banner{background:var(--black);padding:14px 18px 20px;flex-shrink:0}
+.hero-tag{background:var(--red);color:var(--white);font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 12px;border-radius:20px;display:inline-block;margin-bottom:8px;text-transform:uppercase}
+.hero-title{color:var(--white);font-size:20px;font-weight:700;line-height:1.2}
+.hero-date{color:#EF9A9A;font-size:13px;margin-top:3px;font-weight:500}
+.hero-user{color:rgba(255,255,255,.6);font-size:11px;margin-top:6px;font-weight:500;display:flex;align-items:center;gap:6px}
+.admin-pill{background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.5px}
+.btn-edit-jogo{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent;transition:background .15s;white-space:nowrap}
+.btn-edit-jogo:active{background:rgba(255,255,255,.2)}
+.game-card{background:var(--white);border-radius:var(--r-card);margin:14px 16px 0;padding:14px;border:1.5px solid var(--gray200)}
+.game-card-title{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;color:var(--gray600);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.game-info-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray100)}
+.game-info-row:last-child{border-bottom:none}
+.game-info-icon{width:32px;height:32px;background:var(--gray100);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.game-info-label{font-size:11px;color:var(--gray600);font-weight:500}
+.game-info-value{font-size:14px;color:var(--black);font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.game-info-badge{background:var(--red-light);color:var(--red);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+.status-alert{margin:12px 16px 0;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.status-alert.warning{background:#FFF3E0;border:1px solid #FFB300}
+.status-alert.success{background:var(--green-bg);border:1px solid #4CAF50}
+.status-alert.espera{background:var(--blue-bg);border:1px solid #1976D2}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.alert-dot.orange{background:#F57C00}
+.alert-dot.green{background:#388E3C}
+.alert-dot.blue{background:#1976D2}
+.alert-text{font-size:13px;font-weight:500}
+/* Orange: #BF360C sobre FFF3E0 = 5.2:1 ✓ WCAG AA */
+.alert-text.orange{color:var(--orange)}
+.alert-text.green{color:var(--green)}
+.alert-text.blue{color:var(--blue)}
+.vagas-badge{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;margin:10px 16px 0}
+.vagas-badge.ok{background:var(--green-bg);color:var(--green)}
+.vagas-badge.aviso{background:var(--orange-bg);color:var(--orange)}
+.vagas-badge.critico{background:var(--red-light);color:var(--red)}
+.cta-area{padding:12px 16px 0}
+.btn-cta-big{background:var(--red);color:var(--white);border-radius:var(--r-btn);padding:17px;font-size:16px;font-weight:700;text-align:center;cursor:pointer;border:none;font-family:var(--font);width:100%;box-shadow:0 4px 16px rgba(211,47,47,.3);transition:opacity .15s,transform .1s;-webkit-tap-highlight-color:transparent}
+.btn-cta-big:active{opacity:.85;transform:scale(.98)}
+.btn-cta-big:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-cta-sub{text-align:center;margin-top:10px;font-size:13px;color:var(--red);font-weight:600;text-decoration:underline;cursor:pointer;padding:4px}
+.quick-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 16px 0}
+.stat-card{background:var(--gray100);border-radius:12px;padding:14px;text-align:center}
+.stat-num{font-size:26px;font-weight:700;color:var(--black)}
+.stat-num span{font-size:14px;color:var(--gray600)}
+.stat-label{font-size:11px;color:var(--gray600);font-weight:500;margin-top:2px}
+.stat-bar{height:4px;background:var(--gray200);border-radius:4px;margin-top:8px;overflow:hidden}
+.stat-fill{height:100%;border-radius:4px;transition:width .4s,background .4s}
+
+/* ═══ PERCEPÇÃO / FEED ═══ */
+.feed-section{margin:14px 16px 0}
+.feed-title{font-size:11px;font-weight:700;color:var(--gray600);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
+.feed-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray100);animation:fadeUp .3s ease}
+.feed-item:last-child{border-bottom:none}
+.feed-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.feed-dot.green{background:var(--green-bg)}
+.feed-dot.red{background:var(--red-light)}
+.feed-dot.blue{background:var(--blue-bg)}
+.feed-dot.orange{background:var(--orange-bg)}
+.feed-dot.purple{background:var(--purple-bg)}
+.feed-text{font-size:13px;color:var(--black);line-height:1.4;flex:1}
+.feed-time{font-size:11px;color:var(--gray400);margin-top:2px}
+
+/* ═══ PRESENÇA ═══ */
+.presence-header{background:var(--black);padding:14px 20px 18px;flex-shrink:0}
+.back-btn{display:flex;align-items:center;gap:6px;color:var(--white);font-size:14px;font-weight:500;margin-bottom:10px;cursor:pointer;background:none;border:none;font-family:var(--font);-webkit-tap-highlight-color:transparent;padding:4px 0}
+.presence-title{color:var(--white);font-size:19px;font-weight:700}
+.presence-date{color:#EF9A9A;font-size:12px;margin-top:2px}
+.vagas-counter{background:var(--red);border-radius:16px;padding:14px;margin:14px 16px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.vagas-num{color:var(--white);font-size:32px;font-weight:700;line-height:1}
+.vagas-sub{color:rgba(255,255,255,.8);font-size:11px;font-weight:500;margin-top:2px}
+.vagas-bar-wrap{flex:1;margin:0 14px}
+.vagas-bar-bg{height:8px;background:rgba(255,255,255,.3);border-radius:4px;overflow:hidden}
+.vagas-bar-fill{height:100%;background:#fff;border-radius:4px;transition:width .4s}
+.vagas-total{color:#fff;font-size:20px;font-weight:700;text-align:right}
+.vagas-total span{display:block;font-size:10px;font-weight:500;opacity:.8}
+.list-header{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px}
+.list-title{font-size:11px;font-weight:700;color:var(--gray600);letter-spacing:.8px;text-transform:uppercase}
+.list-count{font-size:11px;font-weight:700;color:var(--gray600);background:var(--gray200);padding:2px 8px;border-radius:20px}
+.player-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray100)}
+.player-item:last-child{border-bottom:none}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.avatar.m{background:#E3F2FD;color:#0D47A1}
+.avatar.c{background:#F3E5F5;color:#6A1B9A}
+.avatar.e{background:var(--orange-bg);color:var(--orange)}
+.player-name{font-size:14px;font-weight:600;color:var(--black)}
+.player-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;display:inline-block;margin-top:2px}
+.tag-mensalista{background:#E3F2FD;color:#0D47A1}
+.tag-convidado{background:#F3E5F5;color:#6A1B9A}
+.tag-espera{background:var(--orange-bg);color:var(--orange)}
+.check-icon{width:22px;height:22px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.presence-actions{padding:10px 16px;display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+
+/* ═══ SORTEIO DE TIMES ═══ */
+.times-section{margin:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.time-card{border-radius:var(--r-card);padding:14px;border:2px solid}
+.time-card.time-a{border-color:var(--red);background:var(--red-light)}
+.time-card.time-b{border-color:var(--blue);background:var(--blue-bg)}
+.time-card-title{font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.time-card.time-a .time-card-title{color:var(--red)}
+.time-card.time-b .time-card-title{color:var(--blue)}
+.time-player-list{display:flex;flex-direction:column;gap:4px}
+.time-player{font-size:13px;color:var(--black);font-weight:500;padding:4px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+.time-player:last-child{border-bottom:none}
+.btn-sorteio{background:var(--black);color:#fff;border-radius:var(--r-btn);padding:14px;font-size:15px;font-weight:700;text-align:center;cursor:pointer;border:none;font-family:var(--font);width:100%;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;-webkit-tap-highlight-color:transparent}
+.btn-sorteio:active{opacity:.7}
+.btn-sorteio:disabled{opacity:.4;cursor:not-allowed}
+
+/* ═══ CHAT ═══ */
+.chat-header{background:var(--black);padding:14px 20px 18px;flex-shrink:0}
+.chat-messages{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+.chat-messages::-webkit-scrollbar{display:none}
+.msg-bubble{max-width:82%;display:flex;flex-direction:column;gap:3px}
+.msg-bubble.own{align-self:flex-end;align-items:flex-end}
+.msg-bubble.other{align-self:flex-start;align-items:flex-start}
+.msg-author{font-size:10px;font-weight:700;color:var(--gray600);padding:0 4px}
+.msg-text{padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.4;word-break:break-word}
+.msg-bubble.own .msg-text{background:var(--red);color:#fff;border-bottom-right-radius:4px}
+.msg-bubble.other .msg-text{background:var(--gray100);color:var(--black);border-bottom-left-radius:4px}
+.msg-time{font-size:10px;color:var(--gray400);padding:0 4px}
+.chat-input-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;padding-bottom:calc(10px + var(--safe-bottom));background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0}
+.chat-input{flex:1;background:var(--gray100);border:1.5px solid var(--gray200);border-radius:24px;padding:10px 16px;font-family:var(--font);font-size:15px;color:var(--black);outline:none;resize:none;max-height:80px;transition:border-color .15s}
+.chat-input:focus{border-color:var(--red)}
+.btn-send{width:44px;height:44px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;flex-shrink:0;transition:transform .1s;-webkit-tap-highlight-color:transparent}
+.btn-send:active{transform:scale(.92)}
+.chat-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--gray400);font-size:14px;text-align:center;padding:24px}
+
+/* ═══ FINANCEIRO ═══ */
+.fin-header{background:var(--black);padding:14px 20px 18px;flex-shrink:0}
+.saldo-display{background:var(--gray100);border-radius:var(--r-card);margin:14px 16px 0;padding:18px;text-align:center;flex-shrink:0}
+.saldo-label{font-size:11px;font-weight:700;color:var(--gray600);letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
+.saldo-value{font-size:34px;font-weight:700;color:var(--black)}
+.saldo-badges{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.badge-green{background:var(--green-bg);color:var(--green);font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.badge-orange{background:var(--orange-bg);color:var(--orange);font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.section-title{font-size:11px;font-weight:700;color:var(--gray600);letter-spacing:.8px;text-transform:uppercase;margin:14px 16px 8px}
+.fin-list{padding:0 16px}
+.fin-item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--gray100)}
+.fin-item:last-child{border-bottom:none}
+.fin-name{font-size:14px;font-weight:600;color:var(--black)}
+.fin-meta{font-size:11px;color:var(--gray600);font-weight:500;margin-top:1px}
+.fin-badge-paid{background:var(--green-bg);color:var(--green);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.fin-badge-pend{background:var(--orange-bg);color:var(--orange);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.toggle{width:44px;height:24px;border-radius:12px;position:relative;flex-shrink:0;transition:background .2s}
+.toggle.on{background:var(--red)}
+.toggle.off{background:var(--gray400)}
+.toggle-knob{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on .toggle-knob{left:23px}
+.toggle.off .toggle-knob{left:3px}
+.toggle-label{font-size:11px;font-weight:700;min-width:48px}
+.toggle-label.on{color:var(--green)}
+.toggle-label.off{color:var(--orange)}
+.readonly-tag{font-size:10px;font-weight:600;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:3px 10px;border-radius:20px}
+.admin-tag-pill{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px}
+.lanc-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray100)}
+.lanc-item:last-child{border-bottom:none}
+.lanc-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lanc-icon.entrada{background:#E8F5E9}
+.lanc-icon.saida{background:var(--red-light)}
+.lanc-desc{font-size:13px;font-weight:600;color:var(--black)}
+.lanc-date{font-size:11px;color:var(--gray600)}
+.lanc-val{font-size:14px;font-weight:700}
+.lanc-val.entrada{color:var(--green)}
+.lanc-val.saida{color:var(--red)}
+.fab{position:absolute;bottom:calc(68px + var(--safe-bottom));right:16px;width:52px;height:52px;background:var(--red);border-radius:50%;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(211,47,47,.4);cursor:pointer;z-index:10;border:none;transition:transform .15s;-webkit-tap-highlight-color:transparent}
+.fab.visible{display:flex}
+.fab:active{transform:scale(.92)}
+.reset-zone{margin:16px;padding:16px;border:1.5px dashed #ff6b6b;border-radius:var(--r-card);background:#fff8f8}
+.reset-zone-title{font-size:12px;font-weight:700;color:var(--red);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.reset-zone-desc{font-size:12px;color:var(--gray600);margin-bottom:12px;line-height:1.5}
+
+/* ═══ MEMBROS (ADMIN) ═══ */
+.membro-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray100)}
+.membro-item:last-child{border-bottom:none}
+.membro-actions{display:flex;gap:6px}
+.btn-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;background:var(--gray100);transition:background .15s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.btn-icon:active{background:var(--gray200)}
+.btn-icon.danger{background:var(--red-light)}
+.btn-icon.danger:active{background:#ffcdd2}
+
+/* ═══ PERFIL ═══ */
+.profile-hero{background:var(--black);padding:30px 20px 22px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:10px}
+.profile-avatar-big{width:68px;height:68px;border-radius:50%;border:3px solid var(--red);background:#333;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff}
+.profile-name{color:#fff;font-size:18px;font-weight:700}
+.profile-role{color:#EF9A9A;font-size:13px}
+.profile-card{margin:14px 16px 0;background:var(--gray100);border-radius:var(--r-card);padding:14px}
+.profile-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray200)}
+.profile-row:last-child{border-bottom:none}
+.profile-key{font-size:13px;color:var(--gray600);font-weight:500}
+.profile-val{font-size:13px;color:var(--black);font-weight:600}
+.btn-logout{margin:16px;background:none;border:2px solid var(--red);color:var(--red);border-radius:var(--r-btn);padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);width:calc(100% - 32px);transition:opacity .15s}
+.btn-logout:active{opacity:.7}
+
+/* ═══ MODALS EXTRAS ═══ */
+.wa-modal-icon{width:56px;height:56px;background:#E8F5E9;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.wa-modal-title{font-size:17px;font-weight:700;color:var(--black);text-align:center;margin-bottom:8px}
+.wa-modal-body{font-size:14px;color:var(--gray600);text-align:center;line-height:1.6;margin-bottom:4px}
+.wa-modal-tag{display:inline-block;background:#E3F2FD;color:#0D47A1;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;margin-bottom:14px}
+.confirm-icon{width:52px;height:52px;background:var(--red-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.confirm-title{font-size:17px;font-weight:700;color:var(--black);text-align:center;margin-bottom:8px}
+.confirm-body{font-size:13px;color:var(--gray600);text-align:center;line-height:1.6;margin-bottom:4px}
+.edit-jogo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.edit-jogo-full{grid-column:1/-1}
+
+/* ═══ LEMBRETE BANNER ═══ */
+.lembrete-banner{background:linear-gradient(135deg,#B71C1C,#D32F2F);border-radius:var(--r-card);margin:14px 16px 0;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;width:calc(100% - 32px);font-family:var(--font);text-align:left;transition:opacity .15s}
+.lembrete-banner:active{opacity:.85}
+.lembrete-icon{width:40px;height:40px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.lembrete-title{color:#fff;font-size:13px;font-weight:700;line-height:1.3}
+.lembrete-sub{color:rgba(255,255,255,.8);font-size:11px;margin-top:2px}
+.lembrete-close{margin-left:auto;background:none;border:none;color:rgba(255,255,255,.7);font-size:20px;cursor:pointer;padding:4px;line-height:1;font-family:var(--font)}
+
+/* ═══ MSG DELETE + EDIT ═══ */
+.msg-actions{display:none;gap:4px;margin-top:4px}
+.msg-bubble.own:hover .msg-actions{display:flex}
+.msg-bubble.own:focus-within .msg-actions{display:flex}
+.btn-msg-del{background:rgba(211,47,47,.12);border:none;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600;color:var(--red);cursor:pointer;font-family:var(--font);-webkit-tap-highlight-color:transparent}
+.btn-msg-del:active{background:rgba(211,47,47,.25)}
+
+/* ═══ LANC DELETE ═══ */
+.lanc-del{background:none;border:none;color:var(--gray400);cursor:pointer;padding:4px 6px;border-radius:8px;font-size:18px;line-height:1;transition:color .15s,background .15s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.lanc-del:hover,.lanc-del:focus{color:var(--red);background:var(--red-light)}
+
+/* ═══ PERFIL EDIT ═══ */
+.btn-edit-perfil{background:var(--gray100);border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--black);cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.btn-edit-perfil:active{background:var(--gray200)}
+
+/* ═══ HISTÓRICO ═══ */
+.hist-item{background:var(--gray100);border-radius:12px;padding:14px;margin:0 16px 10px}
+.hist-date-badge{font-size:10px;font-weight:700;color:var(--red);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.hist-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:3px 0}
+.hist-label{color:var(--gray600)}
+.hist-val{font-weight:600;color:var(--black)}
+
+/* ═══ WCAG: SKIP LINK ═══ */
+.skip-link{position:absolute;top:-40px;left:16px;background:var(--red);color:#fff;padding:8px 16px;border-radius:8px;font-weight:700;font-size:14px;z-index:99999;transition:top .2s;text-decoration:none}
+.skip-link:focus{top:8px}
+
+/* ═══ WCAG: HIGH CONTRAST FOCUS ═══ */
+:focus-visible{outline:3px solid var(--red);outline-offset:2px;border-radius:4px}
+button:focus-visible,a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+
+/* ═══ WCAG: REDUCED MOTION ═══ */
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+@media (prefers-contrast: more){
+  :root{--red:#B71C1C;--gray600:#424242;--gray400:#757575;}
+  .input-real{border-color:#424242;}
+  .msg-bubble.other .msg-text{background:#E0E0E0;}
+}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
+<div id="app">
+
+<!-- ══ TOAST ══ -->
+<div id="toast" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+<!-- ════════════ MODAIS ════════════ -->
+
+<!-- LANÇAMENTO -->
+<div class="modal-overlay" id="modal-lanc" role="dialog" aria-modal="true" aria-labelledby="ml-title">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-title" id="ml-title">Novo Lançamento</div>
+    <div class="input-wrap">
+      <label class="input-label" for="lanc-desc">Descrição</label>
+      <input class="input-real" id="lanc-desc" type="text" placeholder="Ex: Aluguel da quadra" maxlength="60" aria-required="true" aria-describedby="lanc-desc-err"/>
+      <span class="input-error" id="lanc-desc-err" role="alert">Informe a descrição</span>
+    </div>
+    <div class="input-wrap" style="margin-top:12px">
+      <label class="input-label" for="lanc-val">Valor (R$)</label>
+      <input class="input-real" id="lanc-val" type="number" placeholder="0,00" min="0.01" step="0.01" aria-required="true" aria-describedby="lanc-val-err"/>
+      <span class="input-error" id="lanc-val-err" role="alert">Informe um valor válido</span>
+    </div>
+    <div class="input-wrap" style="margin-top:12px">
+      <label class="input-label" for="lanc-tipo">Tipo</label>
+      <select class="input-real" id="lanc-tipo" aria-label="Tipo de lançamento">
+        <option value="saida">Saída (Despesa)</option>
+        <option value="entrada">Entrada (Receita)</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="salvarLancamento()">Confirmar Lançamento</button>
+      <button class="btn-outline" onclick="fecharModal('modal-lanc')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDITAR JOGO -->
+<div class="modal-overlay" id="modal-jogo" role="dialog" aria-modal="true" aria-labelledby="mj-title">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-title" id="mj-title">✏️ Editar Próximo Jogo</div>
+    <div class="edit-jogo-grid">
+      <div class="input-wrap">
+        <label class="input-label" for="jogo-data">Data</label>
+        <input class="input-real" id="jogo-data" type="text" placeholder="Ex: 14 Abr"/>
+      </div>
+      <div class="input-wrap">
+        <label class="input-label" for="jogo-hora">Horário</label>
+        <input class="input-real" id="jogo-hora" type="text" placeholder="Ex: 20h00"/>
+      </div>
+      <div class="input-wrap edit-jogo-full">
+        <label class="input-label" for="jogo-local">Local</label>
+        <input class="input-real" id="jogo-local" type="text" placeholder="Ex: Quadra do SESI" maxlength="60"/>
+      </div>
+      <div class="input-wrap">
+        <label class="input-label" for="jogo-valor">Valor da Quadra (R$)</label>
+        <input class="input-real" id="jogo-valor" type="number" placeholder="0,00" min="0" step="0.01"/>
+      </div>
+      <div class="input-wrap">
+        <label class="input-label" for="jogo-vagas">Limite Vagas</label>
+        <input class="input-real" id="jogo-vagas" type="number" placeholder="15" min="1" max="30"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="salvarJogo()">Salvar Alterações</button>
+      <button class="btn-outline" onclick="fecharModal('modal-jogo')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- WHATSAPP -->
+<div class="modal-overlay" id="modal-wa" role="dialog" aria-modal="true" aria-labelledby="mwa-title">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="wa-modal-icon" aria-hidden="true">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="#25D366"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-1-.3-.1-.4-.1-.6.1-.2.2-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.8-.8-1.4-1.7-1.5-2-.2-.3 0-.4.1-.6l.4-.5c.1-.2.1-.3.2-.5.1-.2 0-.3 0-.5-.1-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3 4.9 4.2.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.4.2-.6.2-1.2.1-1.3-.1-.1-.3-.2-.6-.3z"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.9.5 3.7 1.5 5.2L2 22l4.9-1.5C8.3 21.4 10.1 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18c-1.7 0-3.4-.5-4.8-1.4l-.4-.2-3 .8.8-2.9-.3-.4C3.5 15.3 3 13.7 3 12 3 7 7 3 12 3s9 4 9 9-4 9-9 9z"/></svg>
+    </div>
+    <div class="wa-modal-title" id="mwa-title">Recurso em Manutenção</div>
+    <div style="text-align:center"><span class="wa-modal-tag">Em Breve</span></div>
+    <div class="wa-modal-body">A integração com a <strong>API do WhatsApp</strong> estará disponível em breve. Use usuário e senha por enquanto.</div>
+    <div class="modal-actions"><button class="btn-primary" onclick="fecharModal('modal-wa')">Entendi</button></div>
+  </div>
+</div>
+
+<!-- RESET -->
+<div class="modal-overlay" id="modal-reset" role="dialog" aria-modal="true" aria-labelledby="mr-title">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="confirm-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <div class="confirm-title" id="mr-title">Resetar Próxima Rodada?</div>
+    <div class="confirm-body">Esta ação irá <strong>limpar toda a lista de presença</strong> e <strong>resetar os status de pagamento</strong>.<br/><br/>O histórico financeiro e o histórico de jogos serão <strong>mantidos</strong>.</div>
+    <div class="modal-actions">
+      <button class="btn-primary" style="background:var(--red)" onclick="confirmarReset()">Sim, Resetar Rodada</button>
+      <button class="btn-outline" onclick="fecharModal('modal-reset')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADICIONAR MEMBRO -->
+<div class="modal-overlay" id="modal-membro" role="dialog" aria-modal="true" aria-labelledby="mm-title">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-title" id="mm-title">➕ Adicionar Membro</div>
+    <div class="input-wrap">
+      <label class="input-label" for="mem-nome">Nome do Jogador</label>
+      <input class="input-real" id="mem-nome" type="text" placeholder="Ex: Carlos Silva" maxlength="40" aria-required="true" aria-describedby="mem-nome-err"/>
+      <span class="input-error" id="mem-nome-err" role="alert">Informe o nome</span>
+    </div>
+    <div class="input-wrap" style="margin-top:12px">
+      <label class="input-label" for="mem-tag">Tipo</label>
+      <select class="input-real" id="mem-tag" aria-label="Tipo de membro">
+        <option value="Mensalista">Mensalista</option>
+        <option value="Convidado">Convidado</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="salvarMembro()">Adicionar Membro</button>
+      <button class="btn-outline" onclick="fecharModal('modal-membro')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUIR LANÇAMENTO -->
+<div class="modal-overlay" id="modal-del-lanc" role="dialog" aria-modal="true" aria-labelledby="mdl-title">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="confirm-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+    </div>
+    <div class="confirm-title" id="mdl-title">Excluir Lançamento?</div>
+    <div class="confirm-body" id="mdl-body">Esta ação não pode ser desfeita.</div>
+    <div class="modal-actions">
+      <button class="btn-primary" style="background:var(--red)" id="mdl-confirm-btn" onclick="confirmarExcluirLanc()">Sim, Excluir</button>
+      <button class="btn-outline" onclick="fecharModal('modal-del-lanc')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PERFIL -->
+<div class="modal-overlay" id="modal-perfil-edit" role="dialog" aria-modal="true" aria-labelledby="mpe-title">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-title" id="mpe-title">✏️ Editar Perfil</div>
+    <div class="input-wrap">
+      <label class="input-label" for="perfil-edit-nome">Nome de exibição</label>
+      <input class="input-real" id="perfil-edit-nome" type="text" placeholder="Seu nome" maxlength="40" autocomplete="name" aria-required="true" aria-describedby="perfil-edit-nome-err"/>
+      <span class="input-error" id="perfil-edit-nome-err" role="alert">Informe seu nome</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="salvarPerfilEdit()">Salvar</button>
+      <button class="btn-outline" onclick="fecharModal('modal-perfil-edit')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUIR MENSAGEM -->
+<div class="modal-overlay" id="modal-del-msg" role="dialog" aria-modal="true" aria-labelledby="mdm-title">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="confirm-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2.2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    </div>
+    <div class="confirm-title" id="mdm-title">Excluir Mensagem?</div>
+    <div class="confirm-body">A mensagem será removida do chat para todos.</div>
+    <div class="modal-actions">
+      <button class="btn-primary" style="background:var(--red)" onclick="confirmarExcluirMsg()">Sim, Excluir</button>
+      <button class="btn-outline" onclick="fecharModal('modal-del-msg')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ TELA 1 — LOGIN ════════════ -->
+<div class="view active" id="view-login">
+  <div class="login-hero">
+    <div class="logo-mark" aria-hidden="true">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="white"><path d="M20 4L8 10v11c0 9 5.5 17.2 13 20 7.5-2.8 13-11 13-20V10L20 4z"/></svg>
+    </div>
+    <div class="logo-text" role="heading" aria-level="1">Patota</div>
+    <div class="logo-sub">Seu grupo de futebol organizado</div>
+  </div>
+  <div class="login-form" role="form" aria-label="Formulário de acesso">
+    <div class="input-wrap">
+      <label class="input-label" for="login-user">Usuário ou Telefone</label>
+      <input class="input-real" id="login-user" type="text" placeholder="Digite seu usuário" autocomplete="username" autocapitalize="none" spellcheck="false" aria-required="true" aria-describedby="login-user-err"/>
+      <span class="input-error" id="login-user-err" role="alert">Informe seu usuário</span>
+    </div>
+    <div class="input-wrap">
+      <label class="input-label" for="login-pass">Senha</label>
+      <input class="input-real" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" aria-required="true" aria-describedby="login-pass-err"/>
+      <span class="input-error" id="login-pass-err" role="alert">Informe sua senha</span>
+    </div>
+    <button class="btn-primary" onclick="fazerLogin()" id="btn-login">Entrar</button>
+    <div class="divider"><div class="divider-line"></div><div class="divider-text">ou continue com</div><div class="divider-line"></div></div>
+    <button class="btn-whatsapp" onclick="abrirModal('modal-wa')">
+      <div class="wa-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-1-.3-.1-.4-.1-.6.1-.2.2-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.8-.8-1.4-1.7-1.5-2-.2-.3 0-.4.1-.6l.4-.5c.1-.2.1-.3.2-.5.1-.2 0-.3 0-.5-.1-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3 4.9 4.2.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.4.2-.6.2-1.2.1-1.3-.1-.1-.3-.2-.6-.3z"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.9.5 3.7 1.5 5.2L2 22l4.9-1.5C8.3 21.4 10.1 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18c-1.7 0-3.4-.5-4.8-1.4l-.4-.2-3 .8.8-2.9-.3-.4C3.5 15.3 3 13.7 3 12 3 7 7 3 12 3s9 4 9 9-4 9-9 9z"/></svg></div>
+      Entrar com WhatsApp
+    </button>
+    <div class="hint-box"><strong>Dica para teste:</strong> Digite <strong>"admin"</strong> para Ricardo (Administrador) ou qualquer nome para entrar como Jogador.</div>
+    <div class="link-text">Novo por aqui? <span onclick="iniciarOnboarding()" tabindex="0" role="button" onkeydown="if(event.key==='Enter')iniciarOnboarding()">Ver como funciona →</span></div>
+  </div>
+</div>
+
+<!-- ════════════ TELA 1b — ONBOARDING ════════════ -->
+<div class="view" id="view-onboarding">
+  <div class="status-bar light"><span id="ob-clock">9:41</span><div class="status-icons" aria-hidden="true"><svg width="15" height="11" viewBox="0 0 15 11" fill="black"><rect x="0" y="4" width="3" height="7" rx="1"/><rect x="4" y="2" width="3" height="9" rx="1"/><rect x="8" y="0" width="3" height="11" rx="1"/></svg></div></div>
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div class="onboard-wrap" id="onboard-container">
+      <div class="onboard-step active" id="ob-0">
+        <div class="onboard-icon" style="background:var(--red-light)" aria-hidden="true">⚽</div>
+        <div class="onboard-title">Bem-vindo à Patota!</div>
+        <div class="onboard-body">Organize seu grupo de futebol de forma simples, colaborativa e acessível. Tudo em um só lugar.</div>
+      </div>
+      <div class="onboard-step" id="ob-1">
+        <div class="onboard-icon" style="background:var(--green-bg)" aria-hidden="true">📋</div>
+        <div class="onboard-title">Confirme sua presença</div>
+        <div class="onboard-body">Veja os detalhes do próximo jogo e confirme sua presença com um toque. Lista de espera automática quando lotar!</div>
+      </div>
+      <div class="onboard-step" id="ob-2">
+        <div class="onboard-icon" style="background:var(--blue-bg)" aria-hidden="true">💬</div>
+        <div class="onboard-title">Chat da Patota</div>
+        <div class="onboard-body">Converse com os membros do grupo diretamente pelo app. Combine estratégias, compartilhe memes e muito mais!</div>
+      </div>
+      <div class="onboard-step" id="ob-3">
+        <div class="onboard-icon" style="background:var(--orange-bg)" aria-hidden="true">🎲</div>
+        <div class="onboard-title">Sorteio de Times</div>
+        <div class="onboard-body">Com os confirmados definidos, sorteie os times automaticamente. Justo e rápido para todos!</div>
+      </div>
+      <div class="onboard-step" id="ob-4">
+        <div class="onboard-icon" style="background:var(--purple-bg)" aria-hidden="true">💰</div>
+        <div class="onboard-title">Gestão Financeira</div>
+        <div class="onboard-body">Controle pagamentos, registre receitas e despesas. O admin tem visão completa e pode marcar quem pagou.</div>
+      </div>
+      <div class="onboard-dots" id="onboard-dots" aria-hidden="true">
+        <div class="onboard-dot active"></div><div class="onboard-dot"></div><div class="onboard-dot"></div><div class="onboard-dot"></div><div class="onboard-dot"></div>
+      </div>
+    </div>
+    <div style="padding:0 24px 32px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn-primary" id="ob-next-btn" onclick="onboardNext()">Próximo</button>
+      <button class="btn-outline" onclick="navegar('login')" style="font-size:14px;padding:12px">Pular e entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ TELA 2 — MURAL ════════════ -->
+<div class="view" id="view-mural">
+  <div class="status-bar dark"><span id="mural-clock">9:41</span>
+    <div class="status-icons" role="img" aria-label="Sinal de rede e bateria">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="white" aria-hidden="true"><rect x="0" y="4" width="3" height="7" rx="1"/><rect x="4" y="2" width="3" height="9" rx="1"/><rect x="8" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="white" aria-hidden="true"><rect x="0" y="1" width="22" height="10" rx="2" stroke="white" stroke-width="1.5" fill="none"/><rect x="1.5" y="2.5" width="16" height="7" rx="1" fill="white"/><rect x="23" y="3.5" width="2" height="5" rx="1" fill="white" opacity=".6"/></svg>
+    </div>
+  </div>
+  <div class="hero-banner">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div style="flex:1">
+        <div class="hero-tag">Próximo Jogo</div>
+        <div class="hero-title">Patota Blumenau</div>
+        <div class="hero-date" id="hero-data-hora">—</div>
+        <div class="hero-user">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+          <span id="nome-logado-mural">—</span>
+          <span id="admin-pill-mural" class="admin-pill" style="display:none" aria-label="Perfil administrador">ADMIN</span>
+        </div>
+      </div>
+      <button id="btn-edit-jogo" class="btn-edit-jogo" onclick="abrirModalJogo()" style="display:none" aria-label="Editar dados do próximo jogo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Editar
+      </button>
+    </div>
+  </div>
+
+  <div class="scroll-area" id="main-content" style="padding:0 0 16px" tabindex="-1">
+    <div class="game-card">
+      <div class="game-card-title">Detalhes do Jogo</div>
+      <div class="game-info-row">
+        <div class="game-info-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div><div class="game-info-label">Data &amp; Horário</div><div class="game-info-value" id="card-data-hora">—</div></div>
+      </div>
+      <div class="game-info-row">
+        <div class="game-info-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <div><div class="game-info-label">Local</div><div class="game-info-value" id="card-local">—</div></div>
+      </div>
+      <div class="game-info-row">
+        <div class="game-info-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <div><div class="game-info-label">Valor</div><div class="game-info-value" id="card-valor">—</div></div>
+      </div>
+    </div>
+
+    <div id="lembrete-banner-wrap"></div>
+    <div id="mural-vagas-badge" class="vagas-badge ok" role="status" aria-live="polite"></div>
+
+    <div id="mural-status-alert" class="status-alert warning" role="status" aria-live="polite">
+      <div class="alert-dot orange"></div>
+      <div class="alert-text orange">Você ainda não confirmou presença</div>
+    </div>
+
+    <div class="cta-area">
+      <button class="btn-cta-big" id="btn-confirmar-mural" onclick="confirmarPresenca()" aria-label="Confirmar presença no próximo jogo">CONFIRMAR PRESENÇA</button>
+      <div class="btn-cta-sub" onclick="navegar('presenca')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')navegar('presenca')">Ver quem já confirmou →</div>
+    </div>
+
+    <div class="quick-stats" aria-label="Resumo de vagas">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-confirmados" aria-live="polite">0<span>/15</span></div>
+        <div class="stat-label">Confirmados</div>
+        <div class="stat-bar"><div class="stat-fill" id="stat-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-vagas-livres" aria-live="polite">15</div>
+        <div class="stat-label">Vagas livres</div>
+        <div class="stat-bar"><div class="stat-fill" id="stat-bar-livres" style="width:100%;background:#4CAF50"></div></div>
+      </div>
+    </div>
+
+    <!-- FEED DE ATIVIDADE (Mecanismo de Percepção 3C) -->
+    <div class="feed-section" id="feed-section" aria-label="Atividades recentes do grupo">
+      <div class="feed-title">Atividade Recente</div>
+      <div id="feed-list"><div style="padding:12px 0;color:var(--gray400);font-size:13px;text-align:center">Nenhuma atividade ainda</div></div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Navegação principal">
+    <button class="nav-item active" onclick="navegar('mural')" aria-label="Mural" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Mural</button>
+    <button class="nav-item" onclick="navegar('presenca')" aria-label="Lista de presença"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Presença</button>
+    <button class="nav-item" onclick="navegar('chat')" aria-label="Chat da patota"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</button>
+    <button class="nav-item" onclick="navegar('financeiro')" aria-label="Painel financeiro"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Financeiro</button>
+    <button class="nav-item" onclick="navegar('perfil')" aria-label="Meu perfil"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Perfil</button>
+  </nav>
+</div>
+
+<!-- ════════════ TELA 3 — PRESENÇA ════════════ -->
+<div class="view" id="view-presenca">
+  <div class="status-bar dark"><span id="presenca-clock">9:41</span>
+    <div class="status-icons" aria-hidden="true">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="white"><rect x="0" y="4" width="3" height="7" rx="1"/><rect x="4" y="2" width="3" height="9" rx="1"/><rect x="8" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="white"><rect x="0" y="1" width="22" height="10" rx="2" stroke="white" stroke-width="1.5" fill="none"/><rect x="1.5" y="2.5" width="16" height="7" rx="1" fill="white"/><rect x="23" y="3.5" width="2" height="5" rx="1" fill="white" opacity=".6"/></svg>
+    </div>
+  </div>
+  <div class="presence-header">
+    <button class="back-btn" onclick="navegar('mural')" aria-label="Voltar ao mural">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Voltar ao Mural
+    </button>
+    <div class="presence-title">Lista de Presença</div>
+    <div class="presence-date" id="presenca-data-label">—</div>
+  </div>
+
+  <div style="padding:0 16px;flex-shrink:0">
+    <div class="vagas-counter" role="status" aria-label="Contador de vagas">
+      <div><div class="vagas-num" id="vagas-num">0</div><div class="vagas-sub">Confirmados</div></div>
+      <div class="vagas-bar-wrap">
+        <div style="font-size:11px;color:rgba(255,255,255,.75);font-weight:500;margin-bottom:5px">Vagas preenchidas</div>
+        <div class="vagas-bar-bg" role="progressbar" id="vagas-progress" aria-valuemin="0" aria-valuemax="15" aria-valuenow="0">
+          <div class="vagas-bar-fill" id="vagas-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="vagas-total" id="vagas-total-display">15<span>total</span></div>
+    </div>
+  </div>
+
+  <div class="scroll-area" style="padding:0 16px 8px">
+    <div class="list-header">
+      <div class="list-title">Confirmados</div>
+      <div class="list-count" id="count-confirmados">0</div>
+    </div>
+    <div id="lista-confirmados" role="list" aria-label="Jogadores confirmados">
+      <div style="padding:16px 0;color:var(--gray400);font-size:13px;text-align:center">Nenhum confirmado ainda</div>
+    </div>
+    <div id="secao-espera" style="display:none">
+      <div class="list-header">
+        <div class="list-title" style="color:var(--orange)">⏳ Lista de Espera</div>
+        <div class="list-count" id="count-espera">0</div>
+      </div>
+      <div id="lista-espera" role="list" aria-label="Lista de espera"></div>
+    </div>
+
+    <!-- SORTEIO DE TIMES -->
+    <div id="sorteio-section" style="display:none;margin-top:16px">
+      <div class="list-header" style="margin-bottom:10px">
+        <div class="list-title">🎲 Sorteio de Times</div>
+      </div>
+      <button class="btn-sorteio" id="btn-sortear" onclick="sortearTimes()" aria-label="Sortear times aleatoriamente">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+        Sortear Times
+      </button>
+      <div id="times-resultado" class="times-section" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="presence-actions">
+    <button class="btn-primary" id="btn-confirmar-presenca" onclick="confirmarPresenca()">CONFIRMAR MINHA PRESENÇA</button>
+    <button class="btn-outline" id="btn-cancelar-presenca" onclick="cancelarPresenca()" style="display:none">Cancelar minha presença</button>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Navegação principal">
+    <button class="nav-item" onclick="navegar('mural')" aria-label="Mural"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Mural</button>
+    <button class="nav-item active" onclick="navegar('presenca')" aria-label="Presença" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Presença</button>
+    <button class="nav-item" onclick="navegar('chat')" aria-label="Chat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</button>
+    <button class="nav-item" onclick="navegar('financeiro')" aria-label="Financeiro"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Financeiro</button>
+    <button class="nav-item" onclick="navegar('perfil')" aria-label="Perfil"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Perfil</button>
+  </nav>
+</div>
+
+<!-- ════════════ TELA 4 — CHAT ════════════ -->
+<div class="view" id="view-chat">
+  <div class="status-bar dark"><span id="chat-clock">9:41</span>
+    <div class="status-icons" aria-hidden="true">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="white"><rect x="0" y="4" width="3" height="7" rx="1"/><rect x="4" y="2" width="3" height="9" rx="1"/><rect x="8" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="white"><rect x="0" y="1" width="22" height="10" rx="2" stroke="white" stroke-width="1.5" fill="none"/><rect x="1.5" y="2.5" width="16" height="7" rx="1" fill="white"/><rect x="23" y="3.5" width="2" height="5" rx="1" fill="white" opacity=".6"/></svg>
+    </div>
+  </div>
+  <div class="chat-header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px" aria-hidden="true">⚽</div>
+      <div>
+        <div class="presence-title" style="font-size:16px">Chat da Patota</div>
+        <div class="presence-date" id="chat-membros-count">— membros</div>
+      </div>
+    </div>
+  </div>
+  <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-label="Mensagens do chat">
+    <div class="chat-empty" id="chat-empty">
+      <div style="font-size:36px" aria-hidden="true">💬</div>
+      <div style="font-weight:600;color:var(--gray600)">Nenhuma mensagem ainda</div>
+      <div style="font-size:13px">Seja o primeiro a mandar uma mensagem!</div>
+    </div>
+  </div>
+  <div class="chat-input-bar" role="form" aria-label="Enviar mensagem">
+    <textarea class="chat-input" id="chat-input" placeholder="Mensagem..." rows="1" aria-label="Campo de mensagem" maxlength="300" onkeydown="chatKeyDown(event)"></textarea>
+    <button class="btn-send" onclick="enviarMensagem()" aria-label="Enviar mensagem">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+  <nav class="bottom-nav" aria-label="Navegação principal">
+    <button class="nav-item" onclick="navegar('mural')" aria-label="Mural"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Mural</button>
+    <button class="nav-item" onclick="navegar('presenca')" aria-label="Presença"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Presença</button>
+    <button class="nav-item active" onclick="navegar('chat')" aria-label="Chat" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</button>
+    <button class="nav-item" onclick="navegar('financeiro')" aria-label="Financeiro"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Financeiro</button>
+    <button class="nav-item" onclick="navegar('perfil')" aria-label="Perfil"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Perfil</button>
+  </nav>
+</div>
+
+<!-- ════════════ TELA 5 — FINANCEIRO ════════════ -->
+<div class="view" id="view-financeiro" style="position:relative">
+  <div class="status-bar dark"><span id="fin-clock">9:41</span>
+    <div class="status-icons" aria-hidden="true">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="white"><rect x="0" y="4" width="3" height="7" rx="1"/><rect x="4" y="2" width="3" height="9" rx="1"/><rect x="8" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="white"><rect x="0" y="1" width="22" height="10" rx="2" stroke="white" stroke-width="1.5" fill="none"/><rect x="1.5" y="2.5" width="16" height="7" rx="1" fill="white"/><rect x="23" y="3.5" width="2" height="5" rx="1" fill="white" opacity=".6"/></svg>
+    </div>
+  </div>
+  <div class="fin-header">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div class="presence-title">Painel Financeiro</div>
+      <div id="fin-role-tag" class="readonly-tag">Somente Leitura</div>
+    </div>
+    <div id="fin-subtitle" style="color:#EF9A9A;font-size:12px;font-weight:500">Patota Blumenau</div>
+  </div>
+
+  <div style="padding:0 16px;flex-shrink:0">
+    <div class="saldo-display" role="status" aria-label="Saldo do mês">
+      <div class="saldo-label">Saldo do Mês</div>
+      <div class="saldo-value" id="saldo-display">R$ 0,00</div>
+      <div class="saldo-badges">
+        <div class="badge-green"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1B5E20" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span id="saldo-pago-badge">Pago: R$ 0,00</span></div>
+        <div class="badge-orange"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E65100" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span id="saldo-pendente-badge">Pendente: R$ 0,00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-area" style="padding-bottom:88px">
+    <!-- HISTÓRICO DE JOGOS -->
+    <div id="historico-section" style="display:none">
+      <div class="section-title">📅 Histórico de Jogos</div>
+      <div id="historico-list" style="padding:0 0 4px"></div>
+    </div>
+
+    <div class="section-title">Jogadores</div>
+    <div class="fin-list" id="fin-jogadores-list"></div>
+
+    <!-- GESTÃO DE MEMBROS (ADMIN) -->
+    <div id="membros-admin-section" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 16px 8px">
+        <div class="section-title" style="margin:0">👥 Membros</div>
+        <button class="btn-icon" onclick="abrirModal('modal-membro')" aria-label="Adicionar novo membro" style="background:var(--red-light)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="fin-list" id="membros-list"></div>
+    </div>
+
+    <div class="section-title">Lançamentos</div>
+    <div class="fin-list" id="fin-lancamentos-list">
+      <div style="padding:16px 0;color:var(--gray400);font-size:13px;text-align:center">Nenhum lançamento ainda</div>
+    </div>
+    <div id="reset-zone" style="display:none">
+      <div class="reset-zone">
+        <div class="reset-zone-title">⚠️ Controle de Ciclo</div>
+        <div class="reset-zone-desc">Encerrou a rodada? Redefina presenças e pagamentos para o próximo ciclo. O histórico é preservado.</div>
+        <button class="btn-danger" onclick="abrirReset()" aria-label="Resetar próxima rodada">🔄 Resetar Próxima Rodada</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="fab" id="fab-btn" onclick="abrirModal('modal-lanc')" aria-label="Adicionar novo lançamento">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+  <nav class="bottom-nav" aria-label="Navegação principal">
+    <button class="nav-item" onclick="navegar('mural')" aria-label="Mural"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Mural</button>
+    <button class="nav-item" onclick="navegar('presenca')" aria-label="Presença"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Presença</button>
+    <button class="nav-item" onclick="navegar('chat')" aria-label="Chat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</button>
+    <button class="nav-item active" onclick="navegar('financeiro')" aria-label="Financeiro" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Financeiro</button>
+    <button class="nav-item" onclick="navegar('perfil')" aria-label="Perfil"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Perfil</button>
+  </nav>
+</div>
+
+<!-- ════════════ TELA 6 — PERFIL ════════════ -->
+<div class="view" id="view-perfil">
+  <div class="status-bar dark"><span id="perfil-clock">9:41</span>
+    <div class="status-icons" aria-hidden="true">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="white"><rect x="0" y="4" width="3" height="7" rx="1"/><rect x="4" y="2" width="3" height="9" rx="1"/><rect x="8" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="white"><rect x="0" y="1" width="22" height="10" rx="2" stroke="white" stroke-width="1.5" fill="none"/><rect x="1.5" y="2.5" width="16" height="7" rx="1" fill="white"/><rect x="23" y="3.5" width="2" height="5" rx="1" fill="white" opacity=".6"/></svg>
+    </div>
+  </div>
+  <div class="scroll-area">
+    <div class="profile-hero">
+      <div class="profile-avatar-big" id="profile-avatar" aria-hidden="true">??</div>
+      <div class="profile-name" id="profile-name">—</div>
+      <div class="profile-role" id="profile-role">—</div>
+      <button class="btn-edit-perfil" onclick="abrirEditarPerfil()" aria-label="Editar meu perfil">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Editar nome
+      </button>
+    </div>
+    <div class="profile-card">
+      <div class="profile-row"><span class="profile-key">Perfil</span><span class="profile-val" id="profile-val-perfil">—</span></div>
+      <div class="profile-row"><span class="profile-key">Status Pagamento</span><span class="profile-val" id="profile-val-pagamento">—</span></div>
+      <div class="profile-row"><span class="profile-key">Presença confirmada</span><span class="profile-val" id="profile-val-presenca">—</span></div>
+      <div class="profile-row"><span class="profile-key">Vagas disponíveis</span><span class="profile-val" id="profile-val-vagas">—</span></div>
+      <div class="profile-row"><span class="profile-key">Próximo jogo</span><span class="profile-val" id="profile-val-jogo">—</span></div>
+      <div class="profile-row"><span class="profile-key">Mensagens enviadas</span><span class="profile-val" id="profile-val-msgs">—</span></div>
+    </div>
+    <div style="margin:16px 16px 0;background:var(--blue-bg);border-radius:var(--r-card);padding:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">ℹ️ Sobre a Patota Blumenau</div>
+      <div style="font-size:13px;color:var(--gray700);line-height:1.6">Grupo de futebol amador fundado em Blumenau. Reunimos jogadores toda semana para uma partida animada, promovendo saúde, amizade e espírito de equipe. Todos são bem-vindos!</div>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sair da Conta</button>
+  </div>
+  <nav class="bottom-nav" aria-label="Navegação principal">
+    <button class="nav-item" onclick="navegar('mural')" aria-label="Mural"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Mural</button>
+    <button class="nav-item" onclick="navegar('presenca')" aria-label="Presença"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Presença</button>
+    <button class="nav-item" onclick="navegar('chat')" aria-label="Chat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</button>
+    <button class="nav-item" onclick="navegar('financeiro')" aria-label="Financeiro"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Financeiro</button>
+    <button class="nav-item active" onclick="navegar('perfil')" aria-label="Perfil" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Perfil</button>
+  </nav>
+</div>
+
+</div><!-- #app -->
+
+<script>
+'use strict';
+// ═══════════════════════════════════════
+//  ESTADO GLOBAL
+// ═══════════════════════════════════════
+const LIMITE_DEFAULT = 15;
+const JOGO_DEFAULT = { data:'14 Abr', hora:'20h00', local:'Quadra do SESI — Blumenau', valor:20, limite:LIMITE_DEFAULT };
+
+let state = {
+  usuario: null,
+  confirmados: [],
+  espera: [],
+  jogadores: [],
+  lancamentos: [],
+  jogo: { ...JOGO_DEFAULT },
+  mensagens: [],
+  feed: [],
+  historico: [],
+  obStep: 0,
+};
+
+// ═══════════════════════════════════════
+//  DETECÇÃO DE localStorage (acessibilidade de dados)
+// ═══════════════════════════════════════
+let _storageDisponivel = false;
+(function verificarStorage(){
+  try {
+    localStorage.setItem('_test', '1');
+    localStorage.removeItem('_test');
+    _storageDisponivel = true;
+  } catch(e){
+    _storageDisponivel = false;
+  }
+})();
+
+function avisoStorageBloqueado(){
+  if(!_storageDisponivel){
+    const aviso = document.createElement('div');
+    aviso.setAttribute('role','alert');
+    aviso.setAttribute('aria-live','assertive');
+    aviso.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#E65100;color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:12px;z-index:9998;max-width:90%;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+    aviso.textContent = '⚠️ Armazenamento bloqueado (modo privado). Os dados não serão salvos entre sessões.';
+    document.body.appendChild(aviso);
+    setTimeout(() => aviso.remove(), 6000);
+  }
+}
+
+
+function salvarEstado(){
+  try {
+    localStorage.setItem('patota_v3', JSON.stringify({
+      confirmados: state.confirmados,
+      espera:      state.espera,
+      jogadores:   state.jogadores,
+      lancamentos: state.lancamentos,
+      jogo:        state.jogo,
+      mensagens:   state.mensagens,
+      feed:        state.feed,
+      historico:   state.historico,
+    }));
+  } catch(e){}
+}
+
+function carregarEstado(){
+  try {
+    const raw = localStorage.getItem('patota_v3');
+    if(!raw){ resetarJogadores(); return; }
+    const s = JSON.parse(raw);
+    state.confirmados = s.confirmados || [];
+    state.espera      = s.espera      || [];
+    state.lancamentos = s.lancamentos || [];
+    state.jogo        = { ...JOGO_DEFAULT, ...(s.jogo || {}) };
+    state.mensagens   = s.mensagens   || [];
+    state.feed        = s.feed        || [];
+    state.historico   = s.historico   || [];
+    if(s.jogadores && s.jogadores.length){ state.jogadores = s.jogadores; }
+    else { resetarJogadores(); }
+  } catch(e){ resetarJogadores(); }
+}
+
+function resetarJogadores(){
+  state.jogadores = [
+    {id:'ricardo', nome:'Ricardo',  tag:'Mensalista', pago:true},
+    {id:'marcao',  nome:'Marcão',   tag:'Mensalista', pago:true},
+    {id:'roberto', nome:'Roberto',  tag:'Mensalista', pago:false},
+    {id:'thiago',  nome:'Thiago',   tag:'Convidado',  pago:true},
+    {id:'lucas',   nome:'Lucas',    tag:'Convidado',  pago:false},
+  ];
+}
+
+// ═══════════════════════════════════════
+//  AUTENTICAÇÃO
+// ═══════════════════════════════════════
+function fazerLogin(){
+  const user = $('login-user').value.trim();
+  const pass = $('login-pass').value;
+  let ok = true;
+  if(!user){ setErr('login-user', true); ok = false; } else { setErr('login-user', false); }
+  if(!pass){ setErr('login-pass', true); ok = false; } else { setErr('login-pass', false); }
+  if(!ok) return;
+  // Avisa sobre storage bloqueado antes de prosseguir
+  if(!_storageDisponivel) avisoStorageBloqueado();
+  const perfil = user.toLowerCase() === 'admin' ? 'admin' : 'jogador';
+  const nome   = perfil === 'admin' ? 'Ricardo' : capitalize(user);
+  state.usuario = { nome, perfil };
+  salvarSessao();
+  carregarEstado();
+  navegar('mural');
+}
+
+function logout(){
+  try { localStorage.removeItem('patota_sessao'); } catch(e){}
+  state.usuario = null;
+  $('login-user').value = '';
+  $('login-pass').value = '';
+  navegar('login');
+}
+
+function salvarSessao(){
+  try { localStorage.setItem('patota_sessao', JSON.stringify(state.usuario)); } catch(e){}
+}
+
+// ═══════════════════════════════════════
+//  ONBOARDING
+// ═══════════════════════════════════════
+let obCurrent = 0;
+const OB_TOTAL = 5;
+
+function iniciarOnboarding(){
+  obCurrent = 0;
+  atualizarOnboard();
+  navegar('onboarding');
+}
+
+function onboardNext(){
+  if(obCurrent < OB_TOTAL - 1){
+    obCurrent++;
+    atualizarOnboard();
+  } else {
+    navegar('login');
+  }
+}
+
+function atualizarOnboard(){
+  for(let i = 0; i < OB_TOTAL; i++){
+    const el = $('ob-' + i);
+    if(el) el.classList.toggle('active', i === obCurrent);
+  }
+  const dots = document.querySelectorAll('.onboard-dot');
+  dots.forEach((d,i) => d.classList.toggle('active', i === obCurrent));
+  $('ob-next-btn').textContent = obCurrent === OB_TOTAL - 1 ? 'Entendido! Vamos lá 🚀' : 'Próximo';
+}
+
+// ═══════════════════════════════════════
+//  NAVEGAÇÃO
+// ═══════════════════════════════════════
+function navegar(tela){
+  if(tela !== 'login' && tela !== 'onboarding' && !state.usuario){ navegar('login'); return; }
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $('view-' + tela).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('active'); n.removeAttribute('aria-current'); });
+  document.querySelectorAll('#view-' + tela + ' .nav-item').forEach(n => {
+    if(n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + tela + "'")){
+      n.classList.add('active'); n.setAttribute('aria-current','page');
+    }
+  });
+  const renders = { mural: renderMural, presenca: renderPresenca, financeiro: renderFinanceiro, perfil: renderPerfil, chat: renderChat };
+  if(renders[tela]) renders[tela]();
+}
+
+// ═══════════════════════════════════════
+//  FEED DE ATIVIDADE (Mecanismo Percepção 3C)
+// ═══════════════════════════════════════
+function adicionarFeed(tipo, texto){
+  const now = new Date();
+  const hora = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  state.feed.unshift({ tipo, texto, hora, ts: Date.now() });
+  if(state.feed.length > 20) state.feed = state.feed.slice(0, 20);
+  salvarEstado();
+}
+
+const feedIcones = {
+  confirmou:  { cls:'green',  emoji:'✅' },
+  cancelou:   { cls:'red',    emoji:'❌' },
+  espera:     { cls:'orange', emoji:'⏳' },
+  promovido:  { cls:'blue',   emoji:'🎉' },
+  jogo:       { cls:'purple', emoji:'✏️' },
+  pagamento:  { cls:'green',  emoji:'💰' },
+  membro:     { cls:'blue',   emoji:'👤' },
+  sorteio:    { cls:'orange', emoji:'🎲' },
+  msg:        { cls:'purple', emoji:'💬' },
+};
+
+function renderFeed(){
+  const el = $('feed-list');
+  if(!state.feed.length){
+    el.innerHTML = '<div style="padding:12px 0;color:var(--gray400);font-size:13px;text-align:center">Nenhuma atividade ainda</div>';
+    return;
+  }
+  el.innerHTML = state.feed.slice(0,8).map(f => {
+    const ic = feedIcones[f.tipo] || { cls:'blue', emoji:'📌' };
+    return `<div class="feed-item" role="listitem">
+      <div class="feed-dot ${ic.cls}" aria-hidden="true">${ic.emoji}</div>
+      <div style="flex:1">
+        <div class="feed-text">${esc(f.texto)}</div>
+        <div class="feed-time">${f.hora}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  JOGO — EDIÇÃO (ADMIN)
+// ═══════════════════════════════════════
+function abrirModalJogo(){
+  const j = state.jogo;
+  $('jogo-data').value  = j.data;
+  $('jogo-hora').value  = j.hora;
+  $('jogo-local').value = j.local;
+  $('jogo-valor').value = j.valor;
+  $('jogo-vagas').value = j.limite;
+  abrirModal('modal-jogo');
+}
+
+function salvarJogo(){
+  const data  = $('jogo-data').value.trim()  || state.jogo.data;
+  const hora  = $('jogo-hora').value.trim()  || state.jogo.hora;
+  const local = $('jogo-local').value.trim() || state.jogo.local;
+  const valor = parseFloat($('jogo-valor').value) || state.jogo.valor;
+  const lim   = parseInt($('jogo-vagas').value)   || state.jogo.limite;
+  state.jogo  = { data, hora, local, valor, limite: Math.max(1, Math.min(30, lim)) };
+  adicionarFeed('jogo', `${state.usuario.nome} atualizou os dados do jogo`);
+  salvarEstado();
+  fecharModal('modal-jogo');
+  renderMural();
+  renderPresenca();
+  showToast('Dados do jogo atualizados! ✅');
+}
+
+// ═══════════════════════════════════════
+//  RESET DE RODADA (ADMIN)
+// ═══════════════════════════════════════
+function abrirReset(){
+  abrirModal('modal-reset');
+}
+
+function confirmarReset(){
+  // Salva no histórico antes de resetar
+  const rodada = {
+    data:        state.jogo.data,
+    hora:        state.jogo.hora,
+    local:       state.jogo.local,
+    confirmados: state.confirmados.length,
+    pagamentos:  state.jogadores.filter(j => j.pago).length,
+    ts:          Date.now(),
+  };
+  state.historico.unshift(rodada);
+  if(state.historico.length > 10) state.historico = state.historico.slice(0,10);
+
+  state.confirmados = [];
+  state.espera      = [];
+  state.jogadores.forEach(j => j.pago = false);
+  adicionarFeed('jogo', 'Nova rodada iniciada pelo admin');
+  salvarEstado();
+  fecharModal('modal-reset');
+  renderMural();
+  renderPresenca();
+  renderFinanceiro();
+  showToast('Rodada resetada! Histórico salvo. 🔄');
+}
+
+// ═══════════════════════════════════════
+//  PRESENÇA
+// ═══════════════════════════════════════
+function getLimite(){ return state.jogo.limite || LIMITE_DEFAULT; }
+function jaConfirmou(){
+  if(!state.usuario) return false;
+  return state.confirmados.some(c => c.nome === state.usuario.nome)
+      || state.espera.some(e => e.nome === state.usuario.nome);
+}
+function estaNaEspera(){
+  if(!state.usuario) return false;
+  return state.espera.some(e => e.nome === state.usuario.nome);
+}
+
+function confirmarPresenca(){
+  if(!state.usuario) return;
+  if(jaConfirmou()){ showToast('Você já está na lista! ✅'); return; }
+  const tag    = state.usuario.perfil === 'admin' ? 'Mensalista' : 'Convidado';
+  const limite = getLimite();
+  if(state.confirmados.length < limite){
+    state.confirmados.push({ nome: state.usuario.nome, tag });
+    adicionarFeed('confirmou', `${state.usuario.nome} confirmou presença! ⚽`);
+    salvarEstado(); showToast('Presença confirmada! ⚽');
+  } else {
+    state.espera.push({ nome: state.usuario.nome, tag });
+    adicionarFeed('espera', `${state.usuario.nome} entrou na lista de espera`);
+    salvarEstado(); showToast('Vagas esgotadas! Você entrou na espera 🕐');
+  }
+  renderMural(); renderPresenca();
+}
+
+function cancelarPresenca(){
+  if(!state.usuario) return;
+  const nome = state.usuario.nome;
+  const eraEspera = estaNaEspera();
+  state.confirmados = state.confirmados.filter(c => c.nome !== nome);
+  state.espera      = state.espera.filter(e => e.nome !== nome);
+  const limite = getLimite();
+  if(!eraEspera && state.confirmados.length < limite && state.espera.length > 0){
+    const p = state.espera.shift();
+    state.confirmados.push(p);
+    adicionarFeed('promovido', `${p.nome} saiu da lista de espera e foi confirmado!`);
+    showToast(p.nome + ' promovido da lista de espera! ✅');
+  } else {
+    adicionarFeed('cancelou', `${nome} cancelou a presença`);
+    showToast('Presença cancelada.');
+  }
+  salvarEstado(); renderMural(); renderPresenca();
+}
+
+// ═══════════════════════════════════════
+//  SORTEIO DE TIMES
+// ═══════════════════════════════════════
+function sortearTimes(){
+  const lista = [...state.confirmados];
+  if(lista.length < 2){ showToast('São necessários pelo menos 2 jogadores!'); return; }
+  // Fisher-Yates shuffle
+  for(let i = lista.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [lista[i], lista[j]] = [lista[j], lista[i]];
+  }
+  const meio = Math.ceil(lista.length / 2);
+  const timeA = lista.slice(0, meio);
+  const timeB = lista.slice(meio);
+
+  const res = $('times-resultado');
+  res.style.display = 'flex';
+  res.innerHTML = `
+    <div class="time-card time-a" role="region" aria-label="Time Vermelho">
+      <div class="time-card-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#D32F2F" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+        Time Vermelho (${timeA.length})
+      </div>
+      <div class="time-player-list">${timeA.map(p => `<div class="time-player" role="listitem">⚽ ${esc(p.nome)}</div>`).join('')}</div>
+    </div>
+    <div class="time-card time-b" role="region" aria-label="Time Azul">
+      <div class="time-card-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#0D47A1" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+        Time Azul (${timeB.length})
+      </div>
+      <div class="time-player-list">${timeB.map(p => `<div class="time-player" role="listitem">⚽ ${esc(p.nome)}</div>`).join('')}</div>
+    </div>
+  `;
+  adicionarFeed('sorteio', `Times sorteados por ${state.usuario.nome} (${timeA.length}x${timeB.length})`);
+  salvarEstado();
+  renderFeed();
+  showToast('Times sorteados! 🎲');
+}
+
+// ═══════════════════════════════════════
+//  CHAT (Comunicação 3C)
+// ═══════════════════════════════════════
+function renderChat(){
+  if(!state.usuario) return;
+  const total = state.jogadores.length;
+  $('chat-membros-count').textContent = `${total} membro${total!==1?'s':''}`;
+  const container = $('chat-messages');
+  const empty     = $('chat-empty');
+  if(!state.mensagens.length){
+    empty.style.display = 'flex';
+    const existing = container.querySelectorAll('.msg-bubble');
+    existing.forEach(e => e.remove());
+    return;
+  }
+  empty.style.display = 'none';
+  const existing = container.querySelectorAll('.msg-bubble');
+  existing.forEach(e => e.remove());
+  state.mensagens.forEach(m => {
+    const isOwn = m.autor === state.usuario.nome;
+    const div = document.createElement('div');
+    div.className = `msg-bubble ${isOwn ? 'own' : 'other'}`;
+    div.setAttribute('role', 'listitem');
+    div.innerHTML = `
+      ${!isOwn ? `<div class="msg-author">${esc(m.autor)}</div>` : ''}
+      <div class="msg-text">${esc(m.texto)}</div>
+      <div class="msg-time">${m.hora}</div>
+      ${isOwn ? `<div class="msg-actions"><button class="btn-msg-del" onclick="pedirExcluirMsg(${m.ts})" aria-label="Excluir mensagem">🗑 Excluir</button></div>` : ''}
+    `;
+    container.appendChild(div);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+function enviarMensagem(){
+  const inp = $('chat-input');
+  const txt = inp.value.trim();
+  if(!txt || !state.usuario) return;
+  const now = new Date();
+  const hora = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  state.mensagens.push({ autor: state.usuario.nome, texto: txt, hora, ts: Date.now() });
+  if(state.mensagens.length > 100) state.mensagens = state.mensagens.slice(-100);
+  adicionarFeed('msg', `${state.usuario.nome} enviou uma mensagem no chat`);
+  salvarEstado();
+  inp.value = '';
+  inp.style.height = '';
+  renderChat();
+}
+
+function chatKeyDown(e){
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    enviarMensagem();
+  }
+}
+
+// ═══════════════════════════════════════
+//  GESTÃO DE MEMBROS (ADMIN)
+// ═══════════════════════════════════════
+function salvarMembro(){
+  const nome = $('mem-nome').value.trim();
+  const tag  = $('mem-tag').value;
+  if(!nome){ setErr('mem-nome', true); return; }
+  setErr('mem-nome', false);
+  const id = nome.toLowerCase().replace(/\s+/g,'-') + '-' + Date.now();
+  state.jogadores.push({ id, nome, tag, pago: false });
+  adicionarFeed('membro', `${state.usuario.nome} adicionou ${nome} ao grupo`);
+  salvarEstado();
+  fecharModal('modal-membro');
+  $('mem-nome').value = '';
+  renderFinanceiro();
+  showToast(`${nome} adicionado ao grupo! 👤`);
+}
+
+function removerMembro(id){
+  const jog = state.jogadores.find(j => j.id === id);
+  if(!jog) return;
+  if(!confirm(`Remover ${jog.nome} do grupo?`)) return;
+  state.jogadores = state.jogadores.filter(j => j.id !== id);
+  state.confirmados = state.confirmados.filter(c => c.nome !== jog.nome);
+  state.espera      = state.espera.filter(e => e.nome !== jog.nome);
+  adicionarFeed('membro', `${jog.nome} foi removido do grupo`);
+  salvarEstado();
+  renderFinanceiro();
+  renderMural();
+  renderPresenca();
+  showToast(`${jog.nome} removido.`);
+}
+
+// ═══════════════════════════════════════
+//  RENDERS
+// ═══════════════════════════════════════
+function renderMural(){
+  if(!state.usuario) return;
+  const u = state.usuario, j = state.jogo;
+  const limite = getLimite();
+  const total  = state.confirmados.length;
+  const livres = Math.max(0, limite - total);
+  const pct    = Math.min(100, Math.round((total / limite) * 100));
+
+  $('nome-logado-mural').textContent = u.nome;
+  $('admin-pill-mural').style.display = u.perfil === 'admin' ? 'inline-block' : 'none';
+  $('btn-edit-jogo').style.display    = u.perfil === 'admin' ? 'flex' : 'none';
+
+  const dataHora = `${j.data} · ${j.hora}`;
+  $('hero-data-hora').textContent = dataHora;
+  $('card-data-hora').textContent = dataHora;
+  $('card-local').textContent     = j.local;
+  $('card-valor').innerHTML       = `${formatBRL(j.valor)} <div class="game-info-badge">Mensalistas Free</div>`;
+
+  $('stat-confirmados').innerHTML = `${total}<span>/${limite}</span>`;
+  $('stat-vagas-livres').textContent = livres;
+
+  const barColor = pct >= 87 ? 'var(--red)' : pct >= 60 ? '#FF8F00' : '#4CAF50';
+  $('stat-bar-fill').style.cssText   = `width:${pct}%;background:${barColor}`;
+  $('stat-bar-livres').style.cssText = `width:${livres/limite*100}%;background:#4CAF50`;
+
+  const badge = $('mural-vagas-badge');
+  if(livres === 0){
+    badge.className = 'vagas-badge critico'; badge.textContent = '🔴 Vagas esgotadas! Lista de espera ativa';
+  } else if(livres <= 3){
+    badge.className = 'vagas-badge critico'; badge.textContent = `🔴 Apenas ${livres} vaga${livres>1?'s':''} restante${livres>1?'s':''}!`;
+  } else if(livres <= 6){
+    badge.className = 'vagas-badge aviso';   badge.textContent = `🟠 ${livres} vagas restantes`;
+  } else {
+    badge.className = 'vagas-badge ok';      badge.textContent = `🟢 ${livres} vagas disponíveis`;
+  }
+
+  const alert = $('mural-status-alert'), btn = $('btn-confirmar-mural');
+  if(estaNaEspera()){
+    alert.className = 'status-alert espera';
+    alert.innerHTML = '<div class="alert-dot blue"></div><div class="alert-text blue">Você está na lista de espera 🕐</div>';
+    btn.textContent = 'NA LISTA DE ESPERA'; btn.disabled = true;
+  } else if(jaConfirmou()){
+    alert.className = 'status-alert success';
+    alert.innerHTML = '<div class="alert-dot green"></div><div class="alert-text green">Presença confirmada! ✅</div>';
+    btn.textContent = 'PRESENÇA CONFIRMADA ✓'; btn.disabled = true;
+  } else {
+    alert.className = 'status-alert warning';
+    alert.innerHTML = '<div class="alert-dot orange"></div><div class="alert-text orange">Você ainda não confirmou presença</div>';
+    btn.textContent = livres === 0 ? 'ENTRAR NA LISTA DE ESPERA' : 'CONFIRMAR PRESENÇA';
+    btn.disabled = false;
+  }
+  renderFeed();
+  renderLembrete();
+}
+
+function renderPresenca(){
+  if(!state.usuario) return;
+  const j = state.jogo, limite = getLimite();
+  const total = state.confirmados.length;
+  const pct   = Math.min(100, Math.round((total / limite) * 100));
+
+  $('vagas-num').textContent = total;
+  $('vagas-bar-fill').style.width = pct + '%';
+  $('vagas-progress').setAttribute('aria-valuenow', total);
+  $('vagas-progress').setAttribute('aria-valuemax', limite);
+  $('count-confirmados').textContent = total;
+  $('vagas-total-display').innerHTML = `${limite}<span>total</span>`;
+  $('presenca-data-label').textContent = `${j.data} · ${j.hora} · ${j.local}`;
+
+  const lc = $('lista-confirmados');
+  lc.innerHTML = total === 0
+    ? '<div style="padding:16px 0;color:var(--gray400);font-size:13px;text-align:center">Nenhum confirmado ainda</div>'
+    : state.confirmados.map(p => playerHTML(p,'confirmado')).join('');
+
+  const se = $('secao-espera');
+  if(state.espera.length > 0){
+    se.style.display = 'block';
+    $('count-espera').textContent = state.espera.length;
+    $('lista-espera').innerHTML   = state.espera.map(p => playerHTML(p,'espera')).join('');
+  } else { se.style.display = 'none'; }
+
+  const bc = $('btn-confirmar-presenca'), bx = $('btn-cancelar-presenca');
+  if(estaNaEspera()){
+    bc.textContent = 'NA LISTA DE ESPERA'; bc.disabled = true;
+    bx.style.display = 'block'; bx.textContent = 'Sair da lista de espera';
+  } else if(jaConfirmou()){
+    bc.textContent = 'PRESENÇA CONFIRMADA ✓'; bc.disabled = true;
+    bx.style.display = 'block'; bx.textContent = 'Cancelar minha presença';
+  } else {
+    bc.textContent = total >= limite ? 'ENTRAR NA LISTA DE ESPERA' : 'CONFIRMAR MINHA PRESENÇA';
+    bc.disabled = false; bx.style.display = 'none';
+  }
+
+  // Sorteio: mostra se há pelo menos 2 confirmados
+  const sortSec = $('sorteio-section');
+  sortSec.style.display = total >= 2 ? 'block' : 'none';
+  if(total < 2) $('times-resultado').style.display = 'none';
+}
+
+function playerHTML(p, tipo){
+  const ini = initials(p.nome);
+  const ac  = p.tag === 'Mensalista' ? 'm' : (tipo === 'espera' ? 'e' : 'c');
+  const tc  = p.tag === 'Mensalista' ? 'tag-mensalista' : (tipo === 'espera' ? 'tag-espera' : 'tag-convidado');
+  const tl  = tipo === 'espera' ? 'Espera' : p.tag;
+  const ic  = tipo === 'espera'
+    ? '<span style="font-size:16px" aria-hidden="true">⏳</span>'
+    : '<div class="check-icon" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>';
+  return `<div class="player-item" role="listitem"><div class="avatar ${ac}" aria-hidden="true">${ini}</div><div style="flex:1"><div class="player-name">${esc(p.nome)}</div><div class="player-tag ${tc}">${tl}</div></div>${ic}</div>`;
+}
+
+function renderFinanceiro(){
+  if(!state.usuario) return;
+  const isAdm = state.usuario.perfil === 'admin';
+  const j = state.jogo;
+
+  $('fin-role-tag').className   = isAdm ? 'admin-tag-pill' : 'readonly-tag';
+  $('fin-role-tag').textContent = isAdm ? 'ADMIN' : 'Somente Leitura';
+  $('fin-subtitle').textContent = `${j.data} · Patota Blumenau`;
+
+  const fab = $('fab-btn');
+  fab.classList.toggle('visible', isAdm);
+  $('reset-zone').style.display = isAdm ? 'block' : 'none';
+  $('membros-admin-section').style.display = isAdm ? 'block' : 'none';
+
+  const valorQuadra = j.valor || 0;
+  let totalPago = 0, totalPend = 0;
+  state.jogadores.forEach(jog => {
+    const v = jog.tag === 'Mensalista' ? 150 : valorQuadra;
+    if(jog.pago) totalPago += v; else totalPend += v;
+  });
+  state.lancamentos.forEach(l => {
+    if(l.tipo === 'entrada') totalPago += l.valor;
+    else totalPend += l.valor;
+  });
+  const saldo = totalPago - totalPend;
+
+  $('saldo-display').textContent  = formatBRL(saldo);
+  $('saldo-display').style.color  = saldo < 0 ? 'var(--red)' : 'var(--black)';
+  $('saldo-pago-badge').textContent    = 'Pago: ' + formatBRL(totalPago);
+  $('saldo-pendente-badge').textContent = 'Pendente: ' + formatBRL(totalPend);
+
+  // Lista jogadores
+  $('fin-jogadores-list').innerHTML = state.jogadores.map((jog, idx) => {
+    const ini = initials(jog.nome), avc = jog.tag === 'Mensalista' ? 'm' : 'c';
+    if(isAdm){
+      return `<div class="fin-item">
+        <div class="avatar ${avc}" aria-hidden="true">${ini}</div>
+        <div style="flex:1"><div class="fin-name">${esc(jog.nome)}</div><div class="fin-meta">${jog.tag}</div></div>
+        <div class="toggle-wrap" onclick="togglePagamento(${idx})" role="switch" aria-checked="${jog.pago}" aria-label="Pagamento de ${esc(jog.nome)}" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')togglePagamento(${idx})">
+          <div class="toggle ${jog.pago?'on':'off'}" aria-hidden="true"><div class="toggle-knob"></div></div>
+          <span class="toggle-label ${jog.pago?'on':'off'}">${jog.pago?'Pago':'Pendente'}</span>
+        </div>
+      </div>`;
+    }
+    return `<div class="fin-item"><div class="avatar ${avc}" aria-hidden="true">${ini}</div><div style="flex:1"><div class="fin-name">${esc(jog.nome)}</div><div class="fin-meta">${jog.tag}</div></div><div class="${jog.pago?'fin-badge-paid':'fin-badge-pend'}">${jog.pago?'Pago':'Pendente'}</div></div>`;
+  }).join('');
+
+  // Lista membros (admin)
+  if(isAdm){
+    $('membros-list').innerHTML = state.jogadores.map(jog => {
+      const ini = initials(jog.nome), avc = jog.tag === 'Mensalista' ? 'm' : 'c';
+      return `<div class="membro-item">
+        <div class="avatar ${avc}" aria-hidden="true">${ini}</div>
+        <div style="flex:1"><div class="fin-name">${esc(jog.nome)}</div><div class="fin-meta">${jog.tag}</div></div>
+        <div class="membro-actions">
+          <button class="btn-icon danger" onclick="removerMembro('${jog.id}')" aria-label="Remover ${esc(jog.nome)} do grupo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Lista lançamentos
+  const lancEl = $('fin-lancamentos-list');
+  if(!state.lancamentos.length){
+    lancEl.innerHTML = '<div style="padding:16px 0;color:var(--gray400);font-size:13px;text-align:center">Nenhum lançamento ainda</div>';
+  } else {
+    lancEl.innerHTML = state.lancamentos.slice().reverse().map(l => {
+      const cor   = l.tipo === 'entrada' ? 'entrada' : 'saida';
+      const sinal = l.tipo === 'entrada' ? '+' : '−';
+      const ico   = l.tipo === 'entrada'
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B5E20" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+      const delBtn = isAdm ? `<button class="lanc-del" onclick="pedirExcluirLanc(${l.id})" aria-label="Excluir lançamento ${esc(l.desc)}" title="Excluir lançamento">🗑</button>` : '';
+      return `<div class="lanc-item"><div class="lanc-icon ${cor}" aria-hidden="true">${ico}</div><div style="flex:1"><div class="lanc-desc">${esc(l.desc)}</div><div class="lanc-date">${l.data}</div></div><div class="lanc-val ${cor}">${sinal} ${formatBRL(l.valor)}</div>${delBtn}</div>`;
+    }).join('');
+  }
+
+  // Histórico de jogos — visível para todos os perfis
+  const histSec = $('historico-section');
+  if(state.historico.length > 0){
+    histSec.style.display = 'block';
+    $('historico-list').innerHTML = state.historico.map(h => `
+      <div class="hist-item" role="listitem">
+        <div class="hist-date-badge">📅 ${esc(h.data)} · ${esc(h.hora)}</div>
+        <div class="hist-row"><span class="hist-label">Local</span><span class="hist-val">${esc(h.local || '—')}</span></div>
+        <div class="hist-row"><span class="hist-label">Confirmados</span><span class="hist-val">${h.confirmados} jogadores</span></div>
+        <div class="hist-row"><span class="hist-label">Pagamentos em dia</span><span class="hist-val">${h.pagamentos} ${h.pagamentos !== 1 ? 'jogadores' : 'jogador'}</span></div>
+      </div>
+    `).join('');
+  } else {
+    histSec.style.display = isAdm ? 'none' : 'none';
+  }
+}
+
+function renderPerfil(){
+  if(!state.usuario) return;
+  const u = state.usuario, j = state.jogo, limite = getLimite();
+  $('profile-avatar').textContent = initials(u.nome);
+  $('profile-name').textContent   = u.nome;
+  $('profile-role').textContent   = u.perfil === 'admin' ? 'Organizador · Administrador' : 'Jogador';
+  $('profile-val-perfil').textContent = u.perfil === 'admin' ? 'Administrador' : 'Jogador';
+  const jog = state.jogadores.find(j => u.nome.toLowerCase().includes(j.nome.toLowerCase()));
+  $('profile-val-pagamento').textContent = jog ? (jog.pago ? '✅ Pago' : '⚠️ Pendente') : '—';
+  const esp = estaNaEspera(), conf = jaConfirmou();
+  $('profile-val-presenca').textContent = esp ? '⏳ Lista de espera' : (conf ? '✅ Confirmada' : '❌ Não confirmada');
+  $('profile-val-vagas').textContent = Math.max(0, limite - state.confirmados.length) + ' de ' + limite;
+  $('profile-val-jogo').textContent = `${j.data} · ${j.hora}`;
+  const minhasMsgs = state.mensagens.filter(m => m.autor === u.nome).length;
+  $('profile-val-msgs').textContent = minhasMsgs;
+}
+
+// ═══════════════════════════════════════
+//  FINANCEIRO — ADMIN
+// ═══════════════════════════════════════
+function togglePagamento(idx){
+  if(state.usuario?.perfil !== 'admin') return;
+  state.jogadores[idx].pago = !state.jogadores[idx].pago;
+  const jog = state.jogadores[idx];
+  adicionarFeed('pagamento', `Pagamento de ${jog.nome} marcado como ${jog.pago ? 'Pago' : 'Pendente'}`);
+  salvarEstado(); renderFinanceiro();
+  showToast(jog.nome + (jog.pago ? ' marcado como Pago ✅' : ' marcado como Pendente ⚠️'));
+}
+
+// ═══ FOCUS TRAP (WCAG 2.1.2) ═══
+function trapFocus(modalEl){
+  const focusable = modalEl.querySelectorAll('button,input,select,textarea,[tabindex]:not([tabindex="-1"])');
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  function handler(e){
+    if(e.key !== 'Tab') return;
+    if(e.shiftKey){ if(document.activeElement === first){ e.preventDefault(); last.focus(); } }
+    else { if(document.activeElement === last){ e.preventDefault(); first.focus(); } }
+  }
+  modalEl._trapHandler = handler;
+  modalEl.addEventListener('keydown', handler);
+}
+function releaseFocus(modalEl){
+  if(modalEl._trapHandler){ modalEl.removeEventListener('keydown', modalEl._trapHandler); delete modalEl._trapHandler; }
+}
+
+let _lastFocused = null;
+function abrirModal(id){
+  _lastFocused = document.activeElement;
+  const overlay = $(id);
+  overlay.classList.add('show');
+  const sheet = overlay.querySelector('.modal-sheet');
+  setTimeout(() => {
+    const first = sheet.querySelector('input,select,textarea,button');
+    if(first) first.focus();
+    trapFocus(sheet);
+  }, 320);
+}
+function fecharModal(id){
+  const overlay = $(id);
+  overlay.classList.remove('show');
+  const sheet = overlay.querySelector('.modal-sheet');
+  releaseFocus(sheet);
+  if(_lastFocused) setTimeout(() => { try{ _lastFocused.focus(); }catch(e){} }, 50);
+}
+
+function salvarLancamento(){
+  const desc = $('lanc-desc').value.trim();
+  const val  = parseFloat($('lanc-val').value);
+  const tipo = $('lanc-tipo').value;
+  let ok = true;
+  if(!desc){ setErr('lanc-desc',true); ok=false; } else { setErr('lanc-desc',false); }
+  if(!val||val<=0){ setErr('lanc-val',true); ok=false; } else { setErr('lanc-val',false); }
+  if(!ok) return;
+  state.lancamentos.push({ id: Date.now(), desc, valor:val, tipo, data: new Date().toLocaleDateString('pt-BR') });
+  salvarEstado(); fecharModal('modal-lanc'); renderFinanceiro();
+  $('lanc-desc').value=''; $('lanc-val').value='';
+  showToast(tipo==='entrada' ? 'Receita adicionada! 💚' : 'Despesa registrada! 📋');
+}
+
+// ═══════════════════════════════════════
+//  EXCLUIR LANÇAMENTO (Nielsen H5: prevenção de erros)
+// ═══════════════════════════════════════
+let _lancToDelete = null;
+
+function pedirExcluirLanc(lancId){
+  _lancToDelete = lancId;
+  const l = state.lancamentos.find(x => x.id === lancId);
+  if(!l) return;
+  $('mdl-body').textContent = `"${l.desc}" — ${formatBRL(l.valor)}. Esta ação não pode ser desfeita.`;
+  abrirModal('modal-del-lanc');
+}
+
+function confirmarExcluirLanc(){
+  if(_lancToDelete === null) return;
+  state.lancamentos = state.lancamentos.filter(l => l.id !== _lancToDelete);
+  _lancToDelete = null;
+  salvarEstado();
+  fecharModal('modal-del-lanc');
+  renderFinanceiro();
+  showToast('Lançamento excluído.');
+}
+
+// ═══════════════════════════════════════
+//  EXCLUIR MENSAGEM (Nielsen H3: controle do usuário)
+// ═══════════════════════════════════════
+let _msgToDelete = null;
+
+function pedirExcluirMsg(ts){
+  _msgToDelete = ts;
+  abrirModal('modal-del-msg');
+}
+
+function confirmarExcluirMsg(){
+  if(_msgToDelete === null) return;
+  state.mensagens = state.mensagens.filter(m => m.ts !== _msgToDelete);
+  _msgToDelete = null;
+  salvarEstado();
+  fecharModal('modal-del-msg');
+  renderChat();
+  showToast('Mensagem excluída.');
+}
+
+// ═══════════════════════════════════════
+//  EDITAR PERFIL (Nielsen H3 + colaboração)
+// ═══════════════════════════════════════
+function abrirEditarPerfil(){
+  $('perfil-edit-nome').value = state.usuario?.nome || '';
+  setErr('perfil-edit-nome', false);
+  abrirModal('modal-perfil-edit');
+}
+
+function salvarPerfilEdit(){
+  const nome = $('perfil-edit-nome').value.trim();
+  if(!nome){ setErr('perfil-edit-nome', true); return; }
+  setErr('perfil-edit-nome', false);
+  const nomeAntigo = state.usuario.nome;
+  state.usuario.nome = nome;
+  // Atualiza confirmados e espera
+  state.confirmados.forEach(c => { if(c.nome === nomeAntigo) c.nome = nome; });
+  state.espera.forEach(e => { if(e.nome === nomeAntigo) e.nome = nome; });
+  state.mensagens.forEach(m => { if(m.autor === nomeAntigo) m.autor = nome; });
+  salvarSessao();
+  salvarEstado();
+  fecharModal('modal-perfil-edit');
+  renderPerfil();
+  renderMural();
+  adicionarFeed('membro', `${nomeAntigo} atualizou o nome para ${nome}`);
+  showToast('Perfil atualizado! ✅');
+}
+
+// ═══════════════════════════════════════
+//  LEMBRETE / NOTIFICAÇÃO (Mecanismo de Percepção 3C)
+// ═══════════════════════════════════════
+function renderLembrete(){
+  const wrap = $('lembrete-banner-wrap');
+  if(!wrap || !state.usuario) return;
+  const j = state.jogo;
+  const jaConfirmado = jaConfirmou();
+  const dismissed = sessionStorage.getItem('lembrete_dismissed');
+  if(dismissed || jaConfirmado){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <button class="lembrete-banner" onclick="navegar('presenca')" aria-label="Confirmar presença no jogo de ${j.data} às ${j.hora}">
+      <div class="lembrete-icon" aria-hidden="true">🔔</div>
+      <div style="flex:1">
+        <div class="lembrete-title">Lembrete: Confirme sua presença!</div>
+        <div class="lembrete-sub">Jogo ${j.data} · ${j.hora} · ${j.local}</div>
+      </div>
+      <button class="lembrete-close" aria-label="Fechar lembrete" onclick="fecharLembrete(event)">×</button>
+    </button>`;
+}
+
+function fecharLembrete(e){
+  e.stopPropagation();
+  sessionStorage.setItem('lembrete_dismissed','1');
+  renderLembrete();
+}
+
+// ═══════════════════════════════════════
+//  UTILITÁRIOS
+// ═══════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function setErr(id, show){
+  const el = $(id), err = $(id+'-err');
+  el?.classList.toggle('error', show);
+  err?.classList.toggle('show', show);
+}
+
+let toastTimer = null;
+function showToast(msg, dur=3200){
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function initials(nome){ return nome.split(' ').slice(0,2).map(p=>p[0]?.toUpperCase()||'').join(''); }
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function formatBRL(v){ return 'R$ '+Math.abs(+v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+
+function atualizarRelogio(){
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  ['mural-clock','presenca-clock','fin-clock','perfil-clock','chat-clock','ob-clock'].forEach(id => {
+    const e=$(id); if(e) e.textContent=h+':'+m;
+  });
+}
+
+// ═══════════════════════════════════════
+//  EVENTOS GLOBAIS
+// ═══════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && $('view-login').classList.contains('active')) fazerLogin();
+  if(e.key === 'Escape') document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+});
+
+document.querySelectorAll('.modal-overlay').forEach(mo => {
+  mo.addEventListener('click', e => { if(e.target === mo) mo.classList.remove('show'); });
+});
+
+['login-user','login-pass','lanc-desc','lanc-val','mem-nome'].forEach(id => {
+  $(id)?.addEventListener('input', () => setErr(id, false));
+});
+
+// Auto-resize textarea do chat
+$('chat-input')?.addEventListener('input', function(){
+  this.style.height = '';
+  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+});
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+(function init(){
+  atualizarRelogio();
+  setInterval(atualizarRelogio, 30000);
+  try {
+    const sess = localStorage.getItem('patota_sessao');
+    if(sess){
+      state.usuario = JSON.parse(sess);
+      carregarEstado();
+      navegar('mural');
+      return;
+    }
+  } catch(e){}
+  navegar('login');
+  // Avisa sobre storage bloqueado ao abrir o app (modo privado)
+  setTimeout(avisoStorageBloqueado, 800);
+})();
+</script>
+</body>
+</html>
